@@ -2,62 +2,62 @@
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that connects any MCP-compatible client to the SearchAtlas AI Agent platform — giving Claude Desktop, Cursor, Zed, Claude Code, and other AI tools access to 10 specialized SEO/marketing agents, project management, playbook automation, and more.
 
-## Getting an API Key
-
-1. Sign up at [searchatlas.com](https://searchatlas.com)
-2. Navigate to **Settings > API Keys** to generate your `SEARCHATLAS_API_KEY`
-3. Alternatively, use your JWT session token (`SEARCHATLAS_TOKEN`) from the app — open browser DevTools console and run `localStorage.getItem('token')`
-
 ## Quick Start
 
-### Option 1: Install globally via npm
+### 1. Install
 
 ```bash
 npm install -g searchatlas-mcp-server
 ```
 
-Then run:
+### 2. Set up your token (one-time)
 
 ```bash
-SEARCHATLAS_API_KEY=your-key searchatlas-mcp-server
+echo "SEARCHATLAS_TOKEN=your-jwt-token" > ~/.searchatlasrc
 ```
 
-### Option 2: Run directly with npx (no install)
+> **How to get your token:** Log into [searchatlas.com](https://searchatlas.com), open browser DevTools (F12) → Console → run `localStorage.getItem('token')` → copy the result.
+
+### 3. Run
 
 ```bash
-SEARCHATLAS_API_KEY=your-key npx searchatlas-mcp-server
+searchatlas-mcp-server
 ```
 
-### Option 3: Run from source (local development)
+That's it. The server reads your token from `~/.searchatlasrc` automatically.
+
+### Or run without installing
 
 ```bash
-git clone https://gitlab.com/LinkLabs/searchatlas-mcp-server.git
-cd searchatlas-mcp-server
-npm install
-npm run build
-SEARCHATLAS_API_KEY=your-key node dist/index.js
+npx searchatlas-mcp-server
 ```
-
-### Option 4: Docker
-
-```bash
-docker build -t searchatlas-mcp-server .
-docker run -e SEARCHATLAS_API_KEY=your-key searchatlas-mcp-server
-```
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `SEARCHATLAS_API_KEY` | One of these | API key (sent as `X-API-Key` header) |
-| `SEARCHATLAS_TOKEN` | is required | JWT token (sent as `Authorization: Bearer` header) |
-| `SEARCHATLAS_API_URL` | No | API base URL (default: `https://mcp.searchatlas.com`) |
-
-> **Note:** You must provide either `SEARCHATLAS_API_KEY` or `SEARCHATLAS_TOKEN`. The server will not start without credentials.
 
 ## Client Setup
+
+### Cursor
+
+Create `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "searchatlas": {
+      "command": "npx",
+      "args": ["-y", "searchatlas-mcp-server"]
+    }
+  }
+}
+```
+
+> If you set up `~/.searchatlasrc`, no `env` block is needed. Otherwise add `"env": { "SEARCHATLAS_TOKEN": "your-jwt-token" }`.
+
+### Claude Code
+
+```bash
+claude mcp add searchatlas -- npx -y searchatlas-mcp-server
+```
+
+> Token is read from `~/.searchatlasrc` automatically.
 
 ### Claude Desktop
 
@@ -68,37 +68,10 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
   "mcpServers": {
     "searchatlas": {
       "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"],
-      "env": {
-        "SEARCHATLAS_API_KEY": "your-api-key"
-      }
+      "args": ["-y", "searchatlas-mcp-server"]
     }
   }
 }
-```
-
-### Cursor
-
-Add to `.cursor/mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "searchatlas": {
-      "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"],
-      "env": {
-        "SEARCHATLAS_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
-### Claude Code
-
-```bash
-claude mcp add searchatlas --env SEARCHATLAS_API_KEY=your-api-key -- npx -y searchatlas-mcp-server
 ```
 
 ### Zed
@@ -111,10 +84,7 @@ Add to Zed settings (`settings.json`):
     "searchatlas": {
       "command": {
         "path": "npx",
-        "args": ["-y", "searchatlas-mcp-server"],
-        "env": {
-          "SEARCHATLAS_API_KEY": "your-api-key"
-        }
+        "args": ["-y", "searchatlas-mcp-server"]
       }
     }
   }
@@ -130,12 +100,37 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
   "mcpServers": {
     "searchatlas": {
       "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"],
-      "env": {
-        "SEARCHATLAS_API_KEY": "your-api-key"
-      }
+      "args": ["-y", "searchatlas-mcp-server"]
     }
   }
+}
+```
+
+## Configuration
+
+### Option A: `~/.searchatlasrc` file (recommended)
+
+Create once, works everywhere:
+
+```bash
+echo "SEARCHATLAS_TOKEN=your-jwt-token" > ~/.searchatlasrc
+```
+
+### Option B: Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SEARCHATLAS_TOKEN` | Yes (recommended) | JWT token from SearchAtlas app |
+| `SEARCHATLAS_API_KEY` | Alternative | API key (sent as `X-API-Key` header) |
+| `SEARCHATLAS_API_URL` | No | API base URL (default: `https://mcp.searchatlas.com`) |
+
+### Option C: Inline in client config
+
+Add an `env` block to any client config above:
+
+```json
+"env": {
+  "SEARCHATLAS_TOKEN": "your-jwt-token"
 }
 ```
 
@@ -171,81 +166,35 @@ Each agent tool accepts a `message` (required), plus optional `project_id`, `pla
 
 ## Usage Examples
 
-### Ask the orchestrator a question
+Once connected, just talk to your AI client naturally:
 
-```
-Use searchatlas_orchestrator with message "What are the top SEO issues for my site?" and project_id 42
-```
+- *"What are the top SEO issues for my site?"* → calls `searchatlas_orchestrator`
+- *"Run a technical SEO audit on project 42"* → calls `searchatlas_otto_seo`
+- *"Write a blog post about technical SEO best practices"* → calls `searchatlas_content`
+- *"Find long-tail keywords for project management software"* → calls `searchatlas_keywords`
+- *"List my projects"* → calls `searchatlas_list_projects`
+- *"Show available playbooks and run one"* → calls `searchatlas_list_playbooks` then `searchatlas_run_playbook`
 
-### Run an SEO audit
+The AI client picks the right tool automatically.
 
-```
-Use searchatlas_otto_seo with message "Run a full technical SEO audit" and project_id 42
-```
-
-### Generate content
-
-```
-Use searchatlas_content with message "Write a blog post about technical SEO best practices" and project_id 42
-```
-
-### Research keywords
-
-```
-Use searchatlas_keywords with message "Find long-tail keywords for 'project management software'" and project_id 42
-```
-
-### List and run a playbook
-
-```
-1. Use searchatlas_list_playbooks to see available automations
-2. Use searchatlas_run_playbook with the playbook_id and your project_id
-```
-
-## Local Development
-
-### Prerequisites
-
-- Node.js >= 18.0.0
-- npm
+## Development
 
 ### Setup
 
 ```bash
-git clone https://gitlab.com/LinkLabs/searchatlas-mcp-server.git
+git clone https://github.com/bennethuzochukwu-cloud/searchatlas-mcp-server.git
 cd searchatlas-mcp-server
 npm install
-```
-
-### Build
-
-```bash
-npm run build        # Compile TypeScript to dist/
-npm run dev          # Watch mode — recompiles on file changes
-```
-
-### Run locally
-
-```bash
-SEARCHATLAS_TOKEN=your-jwt-token node dist/index.js
+npm run build
 ```
 
 ### Test with MCP Inspector
 
-The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) provides a visual UI for testing MCP servers interactively.
-
 ```bash
-SEARCHATLAS_TOKEN=your-jwt-token npx @modelcontextprotocol/inspector node dist/index.js
+npx "@modelcontextprotocol/inspector" npx searchatlas-mcp-server
 ```
 
-This opens a browser UI at `http://localhost:6274` where you can:
-
-1. See all 16 tools listed in the left panel
-2. Click any tool to see its input schema
-3. Fill in parameters and click **Run Tool** to test
-4. View the response in the result panel
-
-> **Tip:** If the Inspector doesn't pass your env vars through, expand the **Environment Variables** section in the Inspector sidebar and add `SEARCHATLAS_TOKEN` there manually, then click **Restart**.
+> Token is read from `~/.searchatlasrc`. Or pass inline: `SEARCHATLAS_TOKEN=xxx npx "@modelcontextprotocol/inspector" npx searchatlas-mcp-server`
 
 ### Project Structure
 
@@ -253,7 +202,7 @@ This opens a browser UI at `http://localhost:6274` where you can:
 searchatlas-mcp-server/
 ├── src/
 │   ├── index.ts              # Entry point — MCP server + stdio transport
-│   ├── config.ts             # Environment variable loading
+│   ├── config.ts             # Config loader (env vars + ~/.searchatlasrc)
 │   ├── tools/
 │   │   ├── register-all.ts   # Tool registration orchestrator
 │   │   ├── agent-tools.ts    # 10 agent chat tools (factory-generated)
@@ -277,34 +226,14 @@ searchatlas-mcp-server/
 └── LICENSE
 ```
 
-## Publishing to npm
-
-```bash
-npm login
-npm publish
-```
-
-After publishing, users can install with:
-
-```bash
-npm install -g searchatlas-mcp-server
-```
-
-Or run without installing:
-
-```bash
-npx searchatlas-mcp-server
-```
-
 ## Troubleshooting
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `Missing credentials` | No API key or token set | Set `SEARCHATLAS_API_KEY` or `SEARCHATLAS_TOKEN` env var |
-| `fetch failed` | API URL unreachable | Check network; verify `SEARCHATLAS_API_URL` if overridden |
-| `[401] Authentication failed` | Invalid or expired credentials | Get a fresh token from the SearchAtlas app |
-| `[400] session_id required` | Outdated server build | Run `npm run build` to get the latest version with session support |
-| Inspector doesn't pass env vars | Inspector UI limitation | Add env vars in the Inspector's **Environment Variables** panel |
+| `Missing credentials` | No token found | Run `echo "SEARCHATLAS_TOKEN=xxx" > ~/.searchatlasrc` |
+| `fetch failed` | API URL unreachable | Check network connection |
+| `[401] Authentication failed` | Token expired | Get a fresh token from the SearchAtlas app |
+| `[400] session_id required` | Outdated build | Run `npm install -g searchatlas-mcp-server` to update |
 
 ## License
 

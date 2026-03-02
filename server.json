@@ -22,13 +22,13 @@
       "package_arguments": [],
       "environment_variables": [
         {
-          "name": "SEARCHATLAS_API_KEY",
-          "description": "Your SearchAtlas API key (preferred auth method)",
-          "required": false
+          "name": "SEARCHATLAS_TOKEN",
+          "description": "JWT token for authentication (preferred method)",
+          "required": true
         },
         {
-          "name": "SEARCHATLAS_TOKEN",
-          "description": "JWT token for authentication (alternative to API key)",
+          "name": "SEARCHATLAS_API_KEY",
+          "description": "API key authentication (alternative to JWT token)",
           "required": false
         },
         {
