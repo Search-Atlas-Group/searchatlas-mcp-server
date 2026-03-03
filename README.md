@@ -14,9 +14,31 @@ Works with **Claude Code, Cursor, Claude Desktop, VS Code, Windsurf, and Zed**.
 
 ### 1. Install & log in
 
+**With npm:**
+
 ```bash
 npm install -g searchatlas-mcp-server
 searchatlas login
+```
+
+**With yarn:**
+
+```bash
+yarn global add searchatlas-mcp-server
+searchatlas login
+```
+
+**With pnpm:**
+
+```bash
+pnpm add -g searchatlas-mcp-server
+searchatlas login
+```
+
+**Without installing (npx):**
+
+```bash
+npx searchatlas-mcp-server login
 ```
 
 This opens your browser. After logging in:

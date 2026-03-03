@@ -11,7 +11,7 @@
  *   --version / -v     Print version
  */
 
-const VERSION = "1.2.0";
+const VERSION = "1.2.1";
 
 const args = process.argv.slice(2);
 
