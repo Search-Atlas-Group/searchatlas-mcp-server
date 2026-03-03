@@ -10,56 +10,27 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that co
 npm install -g searchatlas-mcp-server
 ```
 
-### 2. Set up your token (one-time)
+### 2. Log in and get your token
 
 ```bash
-echo "SEARCHATLAS_TOKEN=your-jwt-token" > ~/.searchatlasrc
+searchatlas login
 ```
 
-> **How to get your token:** Log into [searchatlas.com](https://searchatlas.com), open browser DevTools (F12) → Console → run `localStorage.getItem('token')` → copy the result.
+This opens SearchAtlas in your browser. After logging in, paste your token when prompted. The command validates, saves it locally, and prints ready-to-paste config snippets for every MCP client.
 
-### 3. Run
+> **Or run without installing:** `npx searchatlas-mcp-server login`
+
+### 3. Add to your MCP client
+
+Pick your client below and paste the config. Replace `your-token` with the token from step 2.
+
+#### Claude Code
 
 ```bash
-searchatlas-mcp-server
+claude mcp add searchatlas -e SEARCHATLAS_TOKEN=your-token -- npx -y searchatlas-mcp-server
 ```
 
-That's it. The server reads your token from `~/.searchatlasrc` automatically.
-
-### Or run without installing
-
-```bash
-npx searchatlas-mcp-server
-```
-
-## Client Setup
-
-### Cursor
-
-Create `.cursor/mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "searchatlas": {
-      "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"]
-    }
-  }
-}
-```
-
-> If you set up `~/.searchatlasrc`, no `env` block is needed. Otherwise add `"env": { "SEARCHATLAS_TOKEN": "your-jwt-token" }`.
-
-### Claude Code
-
-```bash
-claude mcp add searchatlas -- npx -y searchatlas-mcp-server
-```
-
-> Token is read from `~/.searchatlasrc` automatically.
-
-### Claude Desktop
+#### Claude Desktop
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
@@ -68,13 +39,34 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
   "mcpServers": {
     "searchatlas": {
       "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"]
+      "args": ["-y", "searchatlas-mcp-server"],
+      "env": {
+        "SEARCHATLAS_TOKEN": "your-token"
+      }
     }
   }
 }
 ```
 
-### Zed
+#### Cursor
+
+Create `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "searchatlas": {
+      "command": "npx",
+      "args": ["-y", "searchatlas-mcp-server"],
+      "env": {
+        "SEARCHATLAS_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+#### Zed
 
 Add to Zed settings (`settings.json`):
 
@@ -84,14 +76,17 @@ Add to Zed settings (`settings.json`):
     "searchatlas": {
       "command": {
         "path": "npx",
-        "args": ["-y", "searchatlas-mcp-server"]
+        "args": ["-y", "searchatlas-mcp-server"],
+        "env": {
+          "SEARCHATLAS_TOKEN": "your-token"
+        }
       }
     }
   }
 }
 ```
 
-### Windsurf
+#### Windsurf
 
 Add to `~/.codeium/windsurf/mcp_config.json`:
 
@@ -100,21 +95,55 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
   "mcpServers": {
     "searchatlas": {
       "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"]
+      "args": ["-y", "searchatlas-mcp-server"],
+      "env": {
+        "SEARCHATLAS_TOKEN": "your-token"
+      }
     }
   }
 }
 ```
 
-## Configuration
-
-### Option A: `~/.searchatlasrc` file (recommended)
-
-Create once, works everywhere:
+### 4. Verify your setup
 
 ```bash
-echo "SEARCHATLAS_TOKEN=your-jwt-token" > ~/.searchatlasrc
+searchatlas check
 ```
+
+This validates your credentials, JWT token, and API connectivity in one command. Example output:
+
+```
+  SearchAtlas MCP Server — Health Check
+
+  ✓ Credential source: ~/.searchatlasrc
+  ✓ Config loaded successfully
+  ✓ JWT structure valid (expires in 12 days) — user 42
+  ✓ API reachable and authenticated
+
+  All checks passed — you're ready to go!
+```
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `searchatlas login` | Interactive login — validates & saves token, prints MCP config snippets |
+| `searchatlas check` | Health check — validates credentials, JWT, and API connectivity |
+| `searchatlas --version` | Print version |
+| `searchatlas --help` | Show usage information |
+| `searchatlas` (no args) | Start MCP server (stdio transport) |
+
+> All commands also work via `npx searchatlas-mcp-server <command>`.
+
+## Configuration
+
+### Option A: `searchatlas login` (recommended)
+
+```bash
+npx searchatlas-mcp-server login
+```
+
+Opens the browser, prompts for your token, validates it, saves it to `~/.searchatlasrc`, and prints config snippets you can paste directly into your MCP client settings.
 
 ### Option B: Environment variables
 
@@ -124,14 +153,10 @@ echo "SEARCHATLAS_TOKEN=your-jwt-token" > ~/.searchatlasrc
 | `SEARCHATLAS_API_KEY` | Alternative | API key (sent as `X-API-Key` header) |
 | `SEARCHATLAS_API_URL` | No | API base URL (default: `https://mcp.searchatlas.com`) |
 
-### Option C: Inline in client config
+### Option C: `~/.searchatlasrc` file (manual)
 
-Add an `env` block to any client config above:
-
-```json
-"env": {
-  "SEARCHATLAS_TOKEN": "your-jwt-token"
-}
+```bash
+echo "SEARCHATLAS_TOKEN=your-jwt-token" > ~/.searchatlasrc
 ```
 
 ## Tools
@@ -201,7 +226,9 @@ npx "@modelcontextprotocol/inspector" npx searchatlas-mcp-server
 ```
 searchatlas-mcp-server/
 ├── src/
-│   ├── index.ts              # Entry point — MCP server + stdio transport
+│   ├── index.ts              # CLI entry — help, version, login, check, server
+│   ├── login.ts              # Interactive login + token validation
+│   ├── check.ts              # Health check CLI command
 │   ├── config.ts             # Config loader (env vars + ~/.searchatlasrc)
 │   ├── tools/
 │   │   ├── register-all.ts   # Tool registration orchestrator
@@ -217,7 +244,8 @@ searchatlas-mcp-server/
 │       ├── api-client.ts     # HTTP + SSE streaming client
 │       ├── auth.ts           # Auth header builder
 │       ├── errors.ts         # Error types + formatter
-│       └── session.ts        # Session/user ID helpers
+│       ├── session.ts        # Session/user ID helpers
+│       └── token.ts          # Token sanitization + JWT validation
 ├── dist/                     # Compiled output (git-ignored)
 ├── server.json               # MCP registry metadata
 ├── Dockerfile                # Multi-stage Docker build
@@ -230,9 +258,11 @@ searchatlas-mcp-server/
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `Missing credentials` | No token found | Run `echo "SEARCHATLAS_TOKEN=xxx" > ~/.searchatlasrc` |
-| `fetch failed` | API URL unreachable | Check network connection |
-| `[401] Authentication failed` | Token expired | Get a fresh token from the SearchAtlas app |
+| `No SearchAtlas credentials found` | No token configured | Run `npx searchatlas-mcp-server login` |
+| `Token is empty or missing` | Empty or garbage token | Run `npx searchatlas-mcp-server login` with a valid token |
+| `Token expired on ...` | Expired JWT | Run `searchatlas login` to get a fresh token |
+| `Authentication failed. Your token may be expired` | 401 during API call | Run `searchatlas login` to refresh your token |
+| `fetch failed` | API URL unreachable | Check network; run `searchatlas check` to diagnose |
 | `[400] session_id required` | Outdated build | Run `npm install -g searchatlas-mcp-server` to update |
 
 ## License

@@ -13,6 +13,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { sanitizeToken } from "./utils/token.js";
 
 export interface Config {
   apiUrl: string;
@@ -47,15 +48,19 @@ export function loadConfig(): Config {
 
   const apiUrl =
     process.env.SEARCHATLAS_API_URL ?? rc.SEARCHATLAS_API_URL ?? "https://mcp.searchatlas.com";
-  const token = process.env.SEARCHATLAS_TOKEN ?? rc.SEARCHATLAS_TOKEN;
-  const apiKey = process.env.SEARCHATLAS_API_KEY ?? rc.SEARCHATLAS_API_KEY;
+
+  // Sanitize tokens — strips quotes, trims whitespace, rejects garbage
+  const token = sanitizeToken(process.env.SEARCHATLAS_TOKEN ?? rc.SEARCHATLAS_TOKEN) ?? undefined;
+  const apiKey = sanitizeToken(process.env.SEARCHATLAS_API_KEY ?? rc.SEARCHATLAS_API_KEY) ?? undefined;
 
   if (!apiKey && !token) {
     throw new Error(
-      "Missing credentials. Set up in one of these ways:\n" +
-      "  1. Create ~/.searchatlasrc with: SEARCHATLAS_TOKEN=your-jwt-token\n" +
-      "  2. Set environment variable: export SEARCHATLAS_TOKEN=your-jwt-token\n" +
-      "Get your token from the SearchAtlas app: DevTools Console → localStorage.getItem('token')"
+      "No SearchAtlas credentials found.\n\n" +
+      "  Quick fix — run one of these:\n\n" +
+      "    npx searchatlas-mcp-server login     (interactive setup)\n" +
+      "    export SEARCHATLAS_TOKEN=your-token   (env var)\n\n" +
+      "  Or create ~/.searchatlasrc:\n" +
+      "    echo 'SEARCHATLAS_TOKEN=your-token' > ~/.searchatlasrc"
     );
   }
 

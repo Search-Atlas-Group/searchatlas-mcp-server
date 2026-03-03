@@ -14,7 +14,11 @@ export class ApiError extends Error {
 }
 
 export class AuthError extends ApiError {
-  constructor(message = "Authentication failed — check your API key or token.") {
+  constructor(
+    message = "Authentication failed. Your token may be expired or invalid.\n\n" +
+      "To fix this, run:\n" +
+      "  npx searchatlas-mcp-server login"
+  ) {
     super(message, 401, "Unauthorized");
     this.name = "AuthError";
   }

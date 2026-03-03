@@ -8,15 +8,15 @@
     "url": "https://github.com/bennethuzochukwu-cloud/searchatlas-mcp-server"
   },
   "version_detail": {
-    "version": "1.0.0",
-    "release_date": "2026-03-02",
+    "version": "1.2.0",
+    "release_date": "2026-03-03",
     "is_latest": true
   },
   "packages": [
     {
       "registry_name": "npm",
       "name": "searchatlas-mcp-server",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "runtime": "node",
       "runtime_arguments": [],
       "package_arguments": [],

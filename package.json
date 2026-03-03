@@ -1,11 +1,12 @@
 {
   "name": "searchatlas-mcp-server",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "MCP server for SearchAtlas AI Agent — SEO, content, PPC, and site management tools. Exposes 16 tools for keyword research, site auditing, content optimization, backlink analysis, OTTO SEO automation, rank tracking, Google Business Profile management, and LLM brand visibility monitoring.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "searchatlas-mcp-server": "dist/index.js"
+    "searchatlas-mcp-server": "dist/index.js",
+    "searchatlas": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
