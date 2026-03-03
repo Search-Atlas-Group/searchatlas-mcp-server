@@ -5,9 +5,9 @@
 
 import { createInterface } from 'node:readline/promises';
 import { writeFileSync, existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
-import { exec } from 'node:child_process';
+import { exec, execSync } from 'node:child_process';
 import { validateToken } from './utils/token.js';
 
 const RC_PATH = join(homedir(), '.searchatlasrc');
@@ -30,6 +30,32 @@ function openBrowser(url: string): void {
   });
 }
 
+/**
+ * Detect the full absolute path to node.
+ * GUI apps (Cursor, Claude Desktop, VS Code, Windsurf, Zed) on macOS
+ * can't find `node` or `npx` because they don't inherit the user's shell PATH.
+ * We resolve the path once here so the printed config snippets just work.
+ */
+function resolveNodePath(): string {
+  try {
+    return execSync('which node', { encoding: 'utf-8' }).trim();
+  } catch {
+    return 'node';
+  }
+}
+
+/**
+ * Detect the global npm modules directory.
+ * Used to build the direct path to the installed package entry point.
+ */
+function resolveGlobalRoot(): string | null {
+  try {
+    return execSync('npm root -g', { encoding: 'utf-8' }).trim();
+  } catch {
+    return null;
+  }
+}
+
 function saveToken(token: string): void {
   const lines: string[] = [];
 
@@ -46,57 +72,140 @@ function saveToken(token: string): void {
   writeFileSync(RC_PATH, lines.join('\n') + '\n', { mode: 0o600 });
 }
 
+function indent(json: string): string {
+  return json
+    .split('\n')
+    .map((l) => '  ' + l)
+    .join('\n');
+}
+
 function printConfigSnippets(token: string): void {
+  const nodePath = resolveNodePath();
+  const globalRoot = resolveGlobalRoot();
+  const entryPoint = globalRoot
+    ? `${globalRoot}/searchatlas-mcp-server/dist/index.js`
+    : null;
+
+  // Check if the global install actually exists
+  const hasGlobalInstall = entryPoint && existsSync(entryPoint);
+
   console.log('\n  ────────────────────────────────────────────');
   console.log('  Your token (copy this):\n');
   console.log(`  ${token}`);
   console.log('\n  ────────────────────────────────────────────');
 
-  console.log('\n  Paste it into your MCP client settings:\n');
+  console.log('\n  Paste the config below into your MCP client settings:\n');
 
+  if (hasGlobalInstall && nodePath !== 'node') {
+    console.log(
+      '  Tip: Configs below use the full path to node so GUI apps\n' +
+      '  (Cursor, VS Code, Claude Desktop, etc.) can find it.\n',
+    );
+  }
+
+  // Claude Code — runs in a shell so PATH works. Use simple `npx`.
   console.log('  ── Claude Code ──────────────────────────────\n');
   console.log(
     `  claude mcp add searchatlas -e SEARCHATLAS_TOKEN=${token} -- npx -y searchatlas-mcp-server\n`,
   );
 
+  // For GUI apps: use full node path + global install entry point (most reliable)
+  // Fallback: use npx with PATH if global install not found
+  const guiCommand = hasGlobalInstall ? nodePath : `${dirname(nodePath)}/npx`;
+  const guiArgs = hasGlobalInstall
+    ? [entryPoint!]
+    : ['-y', 'searchatlas-mcp-server'];
+
+  // Claude Desktop
   console.log('  ── Claude Desktop ───────────────────────────\n');
   console.log(
-    `  ${JSON.stringify(
+    `${indent(JSON.stringify(
       {
         mcpServers: {
           searchatlas: {
-            command: 'npx',
-            args: ['-y', 'searchatlas-mcp-server'],
+            command: guiCommand,
+            args: guiArgs,
             env: { SEARCHATLAS_TOKEN: token },
           },
         },
       },
       null,
       2,
-    )
-      .split('\n')
-      .map((l) => '  ' + l)
-      .join('\n')}\n`,
+    ))}\n`,
   );
 
+  // Cursor
   console.log('  ── Cursor (.cursor/mcp.json) ────────────────\n');
   console.log(
-    `  ${JSON.stringify(
+    `${indent(JSON.stringify(
       {
         mcpServers: {
           searchatlas: {
-            command: 'npx',
-            args: ['-y', 'searchatlas-mcp-server'],
+            command: guiCommand,
+            args: guiArgs,
             env: { SEARCHATLAS_TOKEN: token },
           },
         },
       },
       null,
       2,
-    )
-      .split('\n')
-      .map((l) => '  ' + l)
-      .join('\n')}\n`,
+    ))}\n`,
+  );
+
+  // Windsurf
+  console.log('  ── Windsurf (~/.codeium/windsurf/mcp_config.json) ──\n');
+  console.log(
+    `${indent(JSON.stringify(
+      {
+        mcpServers: {
+          searchatlas: {
+            command: guiCommand,
+            args: guiArgs,
+            env: { SEARCHATLAS_TOKEN: token },
+          },
+        },
+      },
+      null,
+      2,
+    ))}\n`,
+  );
+
+  // VS Code
+  console.log('  ── VS Code (.vscode/mcp.json) ───────────────\n');
+  console.log(
+    `${indent(JSON.stringify(
+      {
+        servers: {
+          searchatlas: {
+            command: guiCommand,
+            args: guiArgs,
+            env: { SEARCHATLAS_TOKEN: token },
+          },
+        },
+      },
+      null,
+      2,
+    ))}\n`,
+  );
+
+  // Zed
+  console.log('  ── Zed (settings.json) ──────────────────────\n');
+  console.log(
+    `${indent(JSON.stringify(
+      {
+        context_servers: {
+          searchatlas: {
+            command: {
+              path: guiCommand,
+              args: guiArgs,
+              env: { SEARCHATLAS_TOKEN: token },
+            },
+          },
+        },
+      },
+      null,
+      2,
+    ))}\n`,
   );
 
   console.log('  Done! The MCP server will use your token automatically.\n');
@@ -110,7 +219,7 @@ export async function runLogin(): Promise<void> {
   openBrowser(LOGIN_URL);
 
   console.log('  After logging in, grab your token:');
-  console.log('    1. Open DevTools (F12) → Console');
+  console.log('    1. Open DevTools (F12 / Cmd+Option+I) → Console');
   console.log('    2. Run: localStorage.getItem("token")');
   console.log('    3. Copy the result (with or without quotes)\n');
 

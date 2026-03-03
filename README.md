@@ -1,34 +1,62 @@
 # SearchAtlas MCP Server
 
-A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that connects any MCP-compatible client to the SearchAtlas AI Agent platform — giving Claude Desktop, Cursor, Zed, Claude Code, and other AI tools access to 10 specialized SEO/marketing agents, project management, playbook automation, and more.
+[![npm version](https://img.shields.io/npm/v/searchatlas-mcp-server)](https://www.npmjs.com/package/searchatlas-mcp-server)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
-## Quick Start
+Connect any MCP-compatible AI client to the **SearchAtlas AI Agent platform** — 10 specialized SEO & marketing agents, project management, playbook automation, and more.
 
-### 1. Install
+Works with **Claude Code, Cursor, Claude Desktop, VS Code, Windsurf, and Zed**.
+
+---
+
+## Setup (3 steps)
+
+### 1. Install & log in
 
 ```bash
 npm install -g searchatlas-mcp-server
-```
-
-### 2. Log in and get your token
-
-```bash
 searchatlas login
 ```
 
-This opens SearchAtlas in your browser. After logging in, paste your token when prompted. The command validates, saves it locally, and prints ready-to-paste config snippets for every MCP client.
+This opens your browser. After logging in:
 
-> **Or run without installing:** `npx searchatlas-mcp-server login`
+1. Press **F12** (or **Cmd+Option+I** on Mac) to open DevTools
+2. Go to **Console** tab
+3. Run: `localStorage.getItem("token")`
+4. Copy the result and paste it into the terminal
 
-### 3. Add to your MCP client
+The CLI validates your token, saves it, and **prints ready-to-paste configs with your paths auto-detected**.
 
-Pick your client below and paste the config. Replace `your-token` with the token from step 2.
+### 2. Add to your MCP client
 
 #### Claude Code
 
 ```bash
 claude mcp add searchatlas -e SEARCHATLAS_TOKEN=your-token -- npx -y searchatlas-mcp-server
 ```
+
+Done. That's it.
+
+#### Cursor
+
+Create `.cursor/mcp.json` in your project root (or `~/.cursor/mcp.json` for global):
+
+```json
+{
+  "mcpServers": {
+    "searchatlas": {
+      "command": "/opt/homebrew/bin/node",
+      "args": ["/opt/homebrew/lib/node_modules/searchatlas-mcp-server/dist/index.js"],
+      "env": {
+        "SEARCHATLAS_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+> **Your paths may differ.** Run `which node` and `npm root -g` to find them, or just copy the config that `searchatlas login` printed — it has your exact paths.
 
 #### Claude Desktop
 
@@ -38,8 +66,8 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 {
   "mcpServers": {
     "searchatlas": {
-      "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"],
+      "command": "/opt/homebrew/bin/node",
+      "args": ["/opt/homebrew/lib/node_modules/searchatlas-mcp-server/dist/index.js"],
       "env": {
         "SEARCHATLAS_TOKEN": "your-token"
       }
@@ -48,16 +76,19 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 }
 ```
 
-#### Cursor
+Restart Claude Desktop after saving.
 
-Create `.cursor/mcp.json` in your project root:
+<details>
+<summary><strong>Windsurf</strong></summary>
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
 
 ```json
 {
   "mcpServers": {
     "searchatlas": {
-      "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"],
+      "command": "/opt/homebrew/bin/node",
+      "args": ["/opt/homebrew/lib/node_modules/searchatlas-mcp-server/dist/index.js"],
       "env": {
         "SEARCHATLAS_TOKEN": "your-token"
       }
@@ -66,17 +97,41 @@ Create `.cursor/mcp.json` in your project root:
 }
 ```
 
-#### Zed
+</details>
 
-Add to Zed settings (`settings.json`):
+<details>
+<summary><strong>VS Code (GitHub Copilot)</strong></summary>
+
+Add to `.vscode/mcp.json` in your project:
+
+```json
+{
+  "servers": {
+    "searchatlas": {
+      "command": "/opt/homebrew/bin/node",
+      "args": ["/opt/homebrew/lib/node_modules/searchatlas-mcp-server/dist/index.js"],
+      "env": {
+        "SEARCHATLAS_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><strong>Zed</strong></summary>
+
+Add to Zed `settings.json`:
 
 ```json
 {
   "context_servers": {
     "searchatlas": {
       "command": {
-        "path": "npx",
-        "args": ["-y", "searchatlas-mcp-server"],
+        "path": "/opt/homebrew/bin/node",
+        "args": ["/opt/homebrew/lib/node_modules/searchatlas-mcp-server/dist/index.js"],
         "env": {
           "SEARCHATLAS_TOKEN": "your-token"
         }
@@ -86,31 +141,13 @@ Add to Zed settings (`settings.json`):
 }
 ```
 
-#### Windsurf
+</details>
 
-Add to `~/.codeium/windsurf/mcp_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "searchatlas": {
-      "command": "npx",
-      "args": ["-y", "searchatlas-mcp-server"],
-      "env": {
-        "SEARCHATLAS_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-### 4. Verify your setup
+### 3. Verify
 
 ```bash
 searchatlas check
 ```
-
-This validates your credentials, JWT token, and API connectivity in one command. Example output:
 
 ```
   SearchAtlas MCP Server — Health Check
@@ -123,147 +160,132 @@ This validates your credentials, JWT token, and API connectivity in one command.
   All checks passed — you're ready to go!
 ```
 
+---
+
+## Why full paths?
+
+macOS GUI apps (Cursor, Claude Desktop, VS Code, Windsurf, Zed) **don't inherit your shell's PATH**, so they can't find `node` or `npx`. Using the full path to `node` and pointing it directly at the installed package avoids `spawn npx ENOENT` and `env: node: No such file` errors entirely.
+
+`searchatlas login` detects your paths automatically and prints configs you can copy-paste.
+
+| How to find your paths | Command |
+|------------------------|---------|
+| Full path to `node` | `which node` |
+| Global npm modules dir | `npm root -g` |
+
+---
+
+## Usage
+
+Just talk naturally. The AI picks the right tool:
+
+```
+"What are the top SEO issues for my site?"
+"Run a technical SEO audit on example.com"
+"Write a blog post about technical SEO best practices"
+"Find long-tail keywords for project management software"
+"List my projects"
+"Show available playbooks and run one"
+```
+
+---
+
 ## CLI Commands
 
 | Command | Description |
 |---------|-------------|
-| `searchatlas login` | Interactive login — validates & saves token, prints MCP config snippets |
-| `searchatlas check` | Health check — validates credentials, JWT, and API connectivity |
+| `searchatlas login` | Log in, save token, print MCP configs |
+| `searchatlas check` | Validate credentials + API connectivity |
 | `searchatlas --version` | Print version |
-| `searchatlas --help` | Show usage information |
-| `searchatlas` (no args) | Start MCP server (stdio transport) |
+| `searchatlas --help` | Show help |
 
 > All commands also work via `npx searchatlas-mcp-server <command>`.
 
+---
+
+## Tools (16)
+
+### Agents (10)
+
+| Tool | What It Does |
+|------|-------------|
+| `searchatlas_orchestrator` | Routes queries to the best specialist agent |
+| `searchatlas_otto_seo` | Technical SEO fixes, schema markup, optimizations |
+| `searchatlas_ppc` | Google Ads campaigns, bids, performance |
+| `searchatlas_content` | Blog posts, landing pages, optimized copy |
+| `searchatlas_site_explorer` | Crawl data, backlinks, competitive intelligence |
+| `searchatlas_gbp` | Google Business Profile, reviews, local SEO |
+| `searchatlas_authority_building` | Link building, digital PR, outreach |
+| `searchatlas_llm_visibility` | Track AI model references to your brand |
+| `searchatlas_keywords` | Search volume, difficulty, SERP analysis |
+| `searchatlas_website_studio` | Page builder, layouts, site structure |
+
+### Management (6)
+
+| Tool | What It Does |
+|------|-------------|
+| `searchatlas_list_projects` | List projects (paginated, searchable) |
+| `searchatlas_create_project` | Create project by domain |
+| `searchatlas_list_conversations` | List chat sessions by agent |
+| `searchatlas_list_artifacts` | List generated content and reports |
+| `searchatlas_list_playbooks` | Browse automation playbooks |
+| `searchatlas_run_playbook` | Run a playbook on a project |
+
+---
+
 ## Configuration
 
-### Option A: `searchatlas login` (recommended)
+### Token priority (first match wins)
 
-```bash
-npx searchatlas-mcp-server login
-```
+1. `SEARCHATLAS_TOKEN` env var
+2. `SEARCHATLAS_API_KEY` env var
+3. `~/.searchatlasrc` file (created by `searchatlas login`)
 
-Opens the browser, prompts for your token, validates it, saves it to `~/.searchatlasrc`, and prints config snippets you can paste directly into your MCP client settings.
-
-### Option B: Environment variables
+### Environment variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `SEARCHATLAS_TOKEN` | Yes (recommended) | JWT token from SearchAtlas app |
-| `SEARCHATLAS_API_KEY` | Alternative | API key (sent as `X-API-Key` header) |
-| `SEARCHATLAS_API_URL` | No | API base URL (default: `https://mcp.searchatlas.com`) |
+| `SEARCHATLAS_TOKEN` | Yes | JWT token from SearchAtlas |
+| `SEARCHATLAS_API_KEY` | Alternative | API key auth |
+| `SEARCHATLAS_API_URL` | No | Custom API URL (default: `https://mcp.searchatlas.com`) |
 
-### Option C: `~/.searchatlasrc` file (manual)
+---
 
-```bash
-echo "SEARCHATLAS_TOKEN=your-jwt-token" > ~/.searchatlasrc
-```
+## Troubleshooting
 
-## Tools
+| Error | Fix |
+|-------|-----|
+| `spawn npx ENOENT` / `env: node: No such file` | Use full paths (see [Why full paths?](#why-full-paths)) or re-run `searchatlas login` |
+| `No SearchAtlas credentials found` | Run `searchatlas login` |
+| `Token expired on ...` | Run `searchatlas login` for a fresh token |
+| `Authentication failed` (401) | Token expired — run `searchatlas login` |
+| `fetch failed` | Check network; run `searchatlas check` |
+| Tools not showing up | Restart your MCP client after adding config |
 
-### Agent Tools (10)
+**Still stuck?** Run `searchatlas check`, make sure Node.js >= 18 (`node --version`), or [open an issue](https://github.com/bennethuzochukwu-cloud/searchatlas-mcp-server/issues).
 
-Each agent tool accepts a `message` (required), plus optional `project_id`, `playbook_id`, and `plan_mode` parameters.
-
-| Tool | Agent | Description |
-|------|-------|-------------|
-| `searchatlas_orchestrator` | Orchestrator | Multi-agent coordinator — routes queries to the best specialist |
-| `searchatlas_otto_seo` | OTTO SEO | On-page SEO automation — technical fixes, schema, optimizations |
-| `searchatlas_ppc` | PPC | Google Ads management — campaigns, bids, performance analysis |
-| `searchatlas_content` | Content Genius | AI content generation — blogs, landing pages, optimized copy |
-| `searchatlas_site_explorer` | Site Explorer | Site audit — crawl data, backlinks, competitive intelligence |
-| `searchatlas_gbp` | GBP | Google Business Profile — listings, reviews, local SEO |
-| `searchatlas_authority_building` | Authority | Link building and digital PR — outreach and authority signals |
-| `searchatlas_llm_visibility` | LLM Visibility | Tracks how AI models reference your brand and competitors |
-| `searchatlas_keywords` | Keywords | Keyword research — volume, difficulty, SERP analysis, clustering |
-| `searchatlas_website_studio` | Website Studio | Website builder — pages, layouts, and site structure |
-
-### Management Tools (6)
-
-| Tool | Description |
-|------|-------------|
-| `searchatlas_list_projects` | List projects with pagination and search |
-| `searchatlas_create_project` | Create a new project by domain |
-| `searchatlas_list_conversations` | List chat sessions, filtered by agent |
-| `searchatlas_list_artifacts` | List generated artifacts (code, content, reports) |
-| `searchatlas_list_playbooks` | List automation playbooks |
-| `searchatlas_run_playbook` | Execute a playbook on a project |
-
-## Usage Examples
-
-Once connected, just talk to your AI client naturally:
-
-- *"What are the top SEO issues for my site?"* → calls `searchatlas_orchestrator`
-- *"Run a technical SEO audit on project 42"* → calls `searchatlas_otto_seo`
-- *"Write a blog post about technical SEO best practices"* → calls `searchatlas_content`
-- *"Find long-tail keywords for project management software"* → calls `searchatlas_keywords`
-- *"List my projects"* → calls `searchatlas_list_projects`
-- *"Show available playbooks and run one"* → calls `searchatlas_list_playbooks` then `searchatlas_run_playbook`
-
-The AI client picks the right tool automatically.
+---
 
 ## Development
-
-### Setup
 
 ```bash
 git clone https://github.com/bennethuzochukwu-cloud/searchatlas-mcp-server.git
 cd searchatlas-mcp-server
-npm install
-npm run build
+npm install && npm run build
 ```
 
-### Test with MCP Inspector
+Test with MCP Inspector:
 
 ```bash
-npx "@modelcontextprotocol/inspector" npx searchatlas-mcp-server
+npx @modelcontextprotocol/inspector npx searchatlas-mcp-server
 ```
 
-> Token is read from `~/.searchatlasrc`. Or pass inline: `SEARCHATLAS_TOKEN=xxx npx "@modelcontextprotocol/inspector" npx searchatlas-mcp-server`
+---
 
-### Project Structure
+## Requirements
 
-```
-searchatlas-mcp-server/
-├── src/
-│   ├── index.ts              # CLI entry — help, version, login, check, server
-│   ├── login.ts              # Interactive login + token validation
-│   ├── check.ts              # Health check CLI command
-│   ├── config.ts             # Config loader (env vars + ~/.searchatlasrc)
-│   ├── tools/
-│   │   ├── register-all.ts   # Tool registration orchestrator
-│   │   ├── agent-tools.ts    # 10 agent chat tools (factory-generated)
-│   │   ├── project-tools.ts  # Project list/create
-│   │   ├── conversation-tools.ts  # Chat session listing
-│   │   ├── artifact-tools.ts # Generated artifact listing
-│   │   └── playbook-tools.ts # Playbook list/execute
-│   ├── types/
-│   │   ├── agents.ts         # Agent endpoint registry
-│   │   └── api.ts            # API response types
-│   └── utils/
-│       ├── api-client.ts     # HTTP + SSE streaming client
-│       ├── auth.ts           # Auth header builder
-│       ├── errors.ts         # Error types + formatter
-│       ├── session.ts        # Session/user ID helpers
-│       └── token.ts          # Token sanitization + JWT validation
-├── dist/                     # Compiled output (git-ignored)
-├── server.json               # MCP registry metadata
-├── Dockerfile                # Multi-stage Docker build
-├── package.json
-├── tsconfig.json
-└── LICENSE
-```
-
-## Troubleshooting
-
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `No SearchAtlas credentials found` | No token configured | Run `npx searchatlas-mcp-server login` |
-| `Token is empty or missing` | Empty or garbage token | Run `npx searchatlas-mcp-server login` with a valid token |
-| `Token expired on ...` | Expired JWT | Run `searchatlas login` to get a fresh token |
-| `Authentication failed. Your token may be expired` | 401 during API call | Run `searchatlas login` to refresh your token |
-| `fetch failed` | API URL unreachable | Check network; run `searchatlas check` to diagnose |
-| `[400] session_id required` | Outdated build | Run `npm install -g searchatlas-mcp-server` to update |
+- **Node.js** >= 18
+- A **SearchAtlas account** — [sign up here](https://dashboard.searchatlas.com)
 
 ## License
 
